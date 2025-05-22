@@ -1,0 +1,19 @@
+﻿# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Logs & environnement
+*.log
+.env
+
+# OS
+.DS_Store
+Thumbs.db
