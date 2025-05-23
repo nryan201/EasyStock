@@ -1,4 +1,6 @@
 ﻿using MySql.Data.MySqlClient;
+using Microsoft.AspNetCore.Mvc;
+
 
 string connectionString = "Server=localhost;Database=easystock;User ID=root;Password=root;";
 
