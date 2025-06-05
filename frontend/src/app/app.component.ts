@@ -1,22 +1,26 @@
 import { Component } from '@angular/core';
-import {Router, RouterOutlet} from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
+import { CommonModule } from '@angular/common'; // ✅ ici
+
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
-  templateUrl: './app.component.html',
   standalone: true,
+  imports: [RouterOutlet, CommonModule], // ✅ ajoute CommonModule
+  templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'EasyStock';
-  constructor(private router: Router) {}
+  constructor(public router: Router) {}
+
   onLogin() {
     this.router.navigate(['/register']);
-    console.log('Connexion demandée');
   }
 
   onStartFree() {
-    // Logique pour commencer gratuitement
     console.log('Démarrage gratuit demandé');
+  }
+
+  isHomePage(): boolean {
+    return this.router.url === '/' || this.router.url === '/login';
   }
 }
