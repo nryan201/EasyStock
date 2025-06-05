@@ -36,9 +36,44 @@ namespace EasyStock.API.Controllers
 
         public class ProductDto
         {
-            public string Name { get; set; }
+            public string Name { get; set; }= string.Empty;
             public int Stock { get; set; }
             public int CategoryId { get; set; }
+        }
+
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            string connstr_ = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+            var products = new List<ProductDto>();
+            try
+            {
+                using var connection = new MySqlConnection(connstr_);
+                connection.Open();
+                
+                var command= new MySqlCommand("SELECT * FROM product", connection);
+                using var reader = command.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    products.Add(new ProductDto
+                    {
+                        Name = reader["NAME"].ToString() ?? string.Empty,
+                        Stock = Convert.ToInt32(reader["STOCK"]),
+                        CategoryId = Convert.ToInt32(reader["CATEGORY_ID"])
+                    });
+                }
+                return Ok(products);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { error = e.Message });
+            }
+            
+            
+            
+            
+            
         }
     }
 }
