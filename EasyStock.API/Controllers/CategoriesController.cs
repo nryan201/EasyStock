@@ -44,6 +44,7 @@ namespace EasyStock.API.Controllers
                 {
                  categories.Add(new CategoryDto
                     {
+                        id = Convert.ToInt32(reader["ID"]),
                         Name = reader["NAME"].ToString() ?? string.Empty
                     });   
                 }
@@ -60,6 +61,7 @@ namespace EasyStock.API.Controllers
         
         public class CategoryDto
         {
+            public int id { get; set; }
             public string Name { get; set; }= string.Empty;
         }
     }

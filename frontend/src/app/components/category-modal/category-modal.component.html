@@ -1,0 +1,40 @@
+<div class="modal-backdrop" *ngIf="visible" (click)="onBackdropClick($event)">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <!-- Bouton de fermeture optionnel -->
+    <button class="close-button" (click)="onCancel()" aria-label="Fermer">
+      ×
+    </button>
+
+    <h2 class="modal-title">Ajouter une catégorie</h2>
+
+    <form class="modal-form">
+      <div class="form-group">
+        <label for="category" class="form-label">Nom de la catégorie</label>
+        <input
+          type="text"
+          id="category"
+          [(ngModel)]="categoryName"
+          name="category"
+          class="form-input"
+          placeholder="Ex: Électronique, Vêtements..."
+          (keyup.enter)="onSubmit()"
+          #categoryInput
+        />
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="onCancel()">
+          Annuler
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          (click)="onSubmit()"
+          [disabled]="!categoryName?.trim()"
+        >
+          Ajouter
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

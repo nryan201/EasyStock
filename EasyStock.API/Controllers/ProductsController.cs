@@ -75,6 +75,49 @@ namespace EasyStock.API.Controllers
             
             
         }
+        [HttpGet("evolution/{productId}")]
+        public IActionResult GetStockEvolution(int productId)
+        {
+            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+            var evolution = new List<object>();
+
+            try
+            {
+                using var connection = new MySqlConnection(connStr);
+                connection.Open();
+
+                var command = new MySqlCommand(@"
+            SELECT MOVEMENT_DATE, MOVEMENT_TYPE, QUANTITY 
+            FROM mouvements 
+            WHERE PRODUCT_ID = @productId 
+            ORDER BY MOVEMENT_DATE", connection);
+
+                command.Parameters.AddWithValue("@productId", productId);
+                using var reader = command.ExecuteReader();
+
+                int stock = 0;
+
+                while (reader.Read())
+                {
+                    var type = reader["MOVEMENT_TYPE"].ToString();
+                    var qty = Convert.ToInt32(reader["QUANTITY"]);
+
+                    stock += (type == "entrée") ? qty : -qty;
+
+                    evolution.Add(new
+                    {
+                        date = Convert.ToDateTime(reader["MOVEMENT_DATE"]).ToString("yyyy-MM-dd"),
+                        stock = stock
+                    });
+                }
+
+                return Ok(evolution);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { error = e.Message });
+            }
+        }
     }
 }
 

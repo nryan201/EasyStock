@@ -1,0 +1,144 @@
+<div class="app-container">
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <div class="logo">
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27,6.96 12,12.01 20.73,6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span class="logo-text">EasyStock</span>
+        </div>
+        <div class="user-menu">
+          <span class="username">{{ username }}</span>
+          <button class="btn btn-secondary" (click)="logout()">Déconnexion</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Catégories</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <ul class="category-list">
+          <li *ngFor="let category of categories" class="category-item">
+            <a href="#" class="category-link">{{ category.name }}</a>
+          </li>
+          <li *ngIf="categories.length === 0" class="category-item empty">
+            Aucune catégorie disponible
+          </li>
+        </ul>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn btn-primary btn-block" (click)="openCategoryModal()">Ajouter une catégorie</button>
+
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main-content">
+      <div class="page-header">
+        <h1 class="page-title">Tableau de bord</h1>
+      </div>
+
+      <div class="dashboard-stats">
+        <div class="stat-card">
+          <div class="stat-icon">📦</div>
+          <div class="stat-content">
+            <h3 class="stat-title">Total produits</h3>
+            <p class="stat-value">{{ products.length }}</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-content">
+            <h3 class="stat-title">Ruptures</h3>
+            <p class="stat-value">{{ getOutOfStockCount() }}</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <h3 class="stat-title">Catégories</h3>
+            <p class="stat-value">{{ categories.length }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Produits</h2>
+          <button class="btn btn-primary" (click)="openModal('add')">Ajouter un produit</button>
+        </div>
+
+
+
+        <div class="product-list">
+          <div *ngFor="let product of products" class="product-card">
+            <div class="product-header">
+              <h3 class="product-name">{{ product.name }}</h3>
+              <span class="product-stock" [ngClass]="{'stock-low': product.stock < 5, 'stock-out': product.stock === 0}">
+                {{ product.stock }} en stock
+              </span>
+            </div>
+            <div class="product-actions">
+              <button class="btn btn-sm btn-outline">Modifier</button>
+              <button class="btn btn-sm btn-outline">Supprimer</button>
+            </div>
+          </div>
+
+          <div *ngIf="products.length === 0" class="empty-state">
+            <p>Aucun produit disponible</p>
+            <button class="btn btn-primary">Ajouter votre premier produit</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2 class="section-title">Évolution du stock</h2>
+        </div>
+        <div class="chart-container">
+          <canvas id="stockChart"></canvas>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <svg class="footer-logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27,6.96 12,12.01 20.73,6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <span class="footer-logo-text">EasyStock</span>
+        </div>
+        <p class="footer-copyright">&copy; 2024 EasyStock. Tous droits réservés.</p>
+      </div>
+    </div>
+  </footer>
+</div>
+<app-product-modal
+  [visible]="modalVisible"
+  [product]="currentProduct"
+  [mode]="modalMode"
+  [categories]="categories"
+  (save)="saveProduct($event)"
+  (close)="closeModal()">
+</app-product-modal>
+<app-category-modal
+  [visible]="categoryModalVisible"
+  (save)="saveCategory($event)"
+  (close)="closeCategoryModal()"
+></app-category-modal>
+

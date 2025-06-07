@@ -1,0 +1,256 @@
+.register-container {
+  min-height: 100vh;
+  display: flex;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.register-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem;
+  max-width: 500px;
+  margin: 0 auto;
+
+  @media (max-width: 768px) {
+    max-width: 100%;
+    padding: 1rem;
+  }
+}
+
+.register-header {
+  text-align: center;
+  margin-bottom: 2rem;
+
+  .logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+
+    .logo-icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      color: #059669;
+    }
+
+    .logo-text {
+      font-size: 1.75rem;
+      font-weight: bold;
+      color: #111827;
+    }
+  }
+
+  .register-title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #111827;
+    margin-bottom: 0.5rem;
+  }
+
+  .register-subtitle {
+    color: #6b7280;
+    font-size: 1rem;
+    margin: 0;
+  }
+}
+
+.register-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background-color: #fafafa;
+
+  &:focus {
+    outline: none;
+    border-color: #059669;
+    background-color: white;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.1);
+  }
+
+  &::placeholder {
+    color: #9ca3af;
+  }
+
+  &:invalid {
+    border-color: #ef4444;
+  }
+}
+
+.btn-submit {
+  width: 100%;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem 1.5rem;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1.5rem;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.form-footer {
+  text-align: center;
+
+  .terms-text {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 1rem;
+    line-height: 1.4;
+
+    .terms-link {
+      color: #059669;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .login-link {
+    font-size: 0.875rem;
+    color: #6b7280;
+
+    .login-link-text {
+      color: #059669;
+      text-decoration: none;
+      font-weight: 600;
+      margin-left: 0.25rem;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.benefits-sidebar {
+  flex: 1;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  color: white;
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    padding: 2rem 1rem;
+  }
+
+  .benefits-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .benefits-list {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .benefit-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+
+    .benefit-icon {
+      background: rgba(255, 255, 255, 0.2);
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+
+    .benefit-text {
+      display: flex;
+      flex-direction: column;
+
+      strong {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      span {
+        font-size: 0.875rem;
+        opacity: 0.9;
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .register-container {
+    min-height: auto;
+  }
+
+  .benefits-sidebar {
+    order: -1;
+    padding: 1.5rem 1rem;
+
+    .benefits-title {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .benefit-item {
+      margin-bottom: 1rem;
+    }
+  }
+
+  .register-form {
+    padding: 1.5rem;
+    margin: 1rem;
+    border-radius: 0.75rem;
+  }
+}
