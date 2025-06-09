@@ -91,5 +91,32 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+        [HttpGet("verify-admin-password")]
+        public IActionResult VerifyAdminPassword([FromQuery] string password)
+        {
+            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+            try
+            {
+                using var connection = new MySqlConnection(connStr);
+                connection.Open();
+
+                var command = new MySqlCommand("SELECT password FROM admin_password WHERE id = 1", connection);
+                var storedHash = command.ExecuteScalar()?.ToString();
+
+                if (storedHash != null && BCrypt.Net.BCrypt.Verify(password, storedHash))
+                {
+                    return Ok(new { message = "Mot de passe correct" });
+                }
+                else
+                {
+                    return Unauthorized(new { message = "Mot de passe incorrect" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
     }
 }

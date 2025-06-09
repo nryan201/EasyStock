@@ -5,10 +5,11 @@ import { Router } from '@angular/router';
 import { Chart } from 'chart.js/auto';
 import { ProductModalComponent } from '../components/product-modal/product-modal.component';
 import { CategoryModalComponent } from '../components/category-modal/category-modal.component';
+import { PasswordCheckModalComponent } from '../components/app-password-check-modal/app-password-check-modal.component';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, ProductModalComponent, CategoryModalComponent],
+  imports: [CommonModule, HttpClientModule, ProductModalComponent, CategoryModalComponent, PasswordCheckModalComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
@@ -26,7 +27,8 @@ export class DashboardComponent implements OnInit {
   modalMode: 'add' | 'edit' = 'add';
   categoryModalVisible = false;
   isAdmin: boolean = false;
-
+  productToDelete: any = null;
+  passwordModalVisible = false;
   constructor(private http: HttpClient, private router: Router) {}
 
 
@@ -293,6 +295,53 @@ export class DashboardComponent implements OnInit {
 
     // Rediriger vers la page de connexion
     this.router.navigate(['/login']);
+  }
+  get isModeratorOrAdmin(): boolean {
+    const role = sessionStorage.getItem('role');
+    return role === 'admin' || role === 'moderator';
+  }
+  confirmDelete(product: any) {
+    if (!product || !product.id) {
+      console.error("Produit invalide : ", product);
+      return;
+    }
+
+    this.productToDelete = product;
+    this.passwordModalVisible = true;
+  }
+  deleteProductWithPassword(adminPassword: string) {
+    if (!this.productToDelete) return;
+
+    this.http.post('http://localhost:5200/api/products/delete-with-password', {
+      productId: this.productToDelete.id,
+      adminPassword: adminPassword
+    }).subscribe({
+      next: () => {
+        // Retirer le produit de la liste
+        this.products = this.products.filter(p => p.id !== this.productToDelete.id);
+
+        // Fermer le modal
+        this.passwordModalVisible = false;
+        this.productToDelete = null;
+
+        // 🔁 Recharger le graphe global
+        this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
+          .subscribe({
+            next: (data) => {
+              const labels = data.map(d => d.date);
+              const values = data.map(d => d.stock);
+              this.initChart(labels, values);
+            },
+            error: (err) => {
+              console.error("Erreur rechargement du graphe global :", err);
+              this.initChart([], []);
+            }
+          });
+      },
+      error: () => {
+        alert("Mot de passe incorrect ou erreur de suppression.");
+      }
+    });
   }
 
 

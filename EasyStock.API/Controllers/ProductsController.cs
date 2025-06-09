@@ -34,14 +34,6 @@ namespace EasyStock.API.Controllers
 
 
         }
-
-        public class ProductDto
-        {
-            public string Name { get; set; } = string.Empty;
-            public int Stock { get; set; }
-            public int CategoryId { get; set; }
-        }
-
         [HttpGet]
         public IActionResult GetAll()
         {
@@ -55,10 +47,10 @@ namespace EasyStock.API.Controllers
                 var command = new MySqlCommand("SELECT * FROM product", connection);
                 using var reader = command.ExecuteReader();
 
-                while (reader.Read())
+                while (reader.Read()) 
                 {
-                    products.Add(new ProductDto
-                    {
+                    products.Add(new ProductDto {
+                        Id = Convert.ToInt32(reader["ID"]),  // <= AJOUTE CECI
                         Name = reader["NAME"].ToString() ?? string.Empty,
                         Stock = Convert.ToInt32(reader["STOCK"]),
                         CategoryId = Convert.ToInt32(reader["CATEGORY_ID"])
@@ -153,6 +145,46 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+        [HttpPost("delete-with-password")]
+        public IActionResult DeleteWithPassword([FromBody] DeleteWithPasswordDto dto)
+        {
+            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+    
+            try
+            {
+                using var connection = new MySqlConnection(connStr);
+                connection.Open();
+
+                // Vérification du mot de passe admin
+                var passwordCmd = new MySqlCommand("SELECT password FROM admin_password WHERE id = 1", connection);
+                var hashedPassword = passwordCmd.ExecuteScalar()?.ToString();
+
+                if (string.IsNullOrEmpty(hashedPassword) || !BCrypt.Net.BCrypt.Verify(dto.AdminPassword, hashedPassword))
+                {
+                    return Unauthorized(new { message = "Mot de passe admin invalide" });
+                }
+
+                // Supprimer les mouvements liés
+                var deleteMovements = new MySqlCommand("DELETE FROM mouvements WHERE PRODUCT_ID = @id", connection);
+                deleteMovements.Parameters.AddWithValue("@id", dto.ProductId);
+                deleteMovements.ExecuteNonQuery();
+
+                // Supprimer le produit
+                var deleteCmd = new MySqlCommand("DELETE FROM product WHERE id = @id", connection);
+                deleteCmd.Parameters.AddWithValue("@id", dto.ProductId);
+                int rowsAffected = deleteCmd.ExecuteNonQuery();
+
+                if (rowsAffected == 0)
+                    return NotFound(new { message = "Produit non trouvé" });
+
+                return Ok(new { message = "Produit supprimé avec succès" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
 
     }
 
