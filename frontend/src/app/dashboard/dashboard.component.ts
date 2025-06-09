@@ -29,6 +29,10 @@ export class DashboardComponent implements OnInit {
   isAdmin: boolean = false;
   productToDelete: any = null;
   passwordModalVisible = false;
+  actionAfterPassword: 'edit' | 'delete' | null = null;
+
+
+
   constructor(private http: HttpClient, private router: Router) {}
 
 
@@ -133,13 +137,13 @@ export class DashboardComponent implements OnInit {
 
   saveProduct(product: any) {
     if (this.modalMode === 'add') {
+      // ➤ Ajout d’un nouveau produit
       this.http.post<any>('http://localhost:5200/api/products', product).subscribe(res => {
-        // 1. Ajouter l'ID renvoyé par l'API
         product.id = res.id;
         this.products.push(product);
         this.modalVisible = false;
 
-        // 2. Créer un mouvement "IN"
+        // ➤ Créer un mouvement initial
         const mouvement = {
           productId: product.id,
           quantity: product.stock,
@@ -148,38 +152,47 @@ export class DashboardComponent implements OnInit {
 
         this.http.post('http://localhost:5200/api/mouvements', mouvement).subscribe(() => {
           console.log('✅ Mouvement créé pour le produit :', mouvement);
-
-          // 3. Recharger le graphique global après le mouvement
-          this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
-            .subscribe({
-              next: (data) => {
-                console.log('📊 Données globales après ajout :', data);
-                const labels = data.map(d => d.date);
-                const values = data.map(d => d.stock);
-                this.initChart(labels, values);
-              },
-              error: (err) => {
-                console.error('❌ Erreur lors du rechargement du graphique global :', err);
-                this.initChart([], []);
-              }
-            });
+          this.refreshChart(); // 🔄 met à jour le graphe global
         });
       }, err => {
         console.error('❌ Erreur lors de la création du produit', err);
       });
+
     } else {
-      const index = this.products.findIndex(p => p.name === this.currentProduct.name);
-      if (index > -1) {
-        this.products[index] = product;
-      }
-      this.modalVisible = false;
+      // ➤ Modification du produit existant
+      const index = this.products.findIndex(p => p.id === product.id);
+      const ancienStock = this.products[index]?.stock ?? 0;
+      const difference = product.stock - ancienStock;
+
+      this.http.put(`http://localhost:5200/api/products/${product.id}`, product).subscribe({
+        next: () => {
+          if (index > -1) {
+            this.products[index] = product;
+          }
+          this.modalVisible = false;
+
+          if (difference !== 0) {
+            const mouvement = {
+              productId: product.id,
+              quantity: Math.abs(difference),
+              movementType: difference > 0 ? 'IN' : 'OUT'
+            };
+
+            this.http.post('http://localhost:5200/api/mouvements', mouvement).subscribe(() => {
+              console.log('🔁 Mouvement enregistré pour modification de stock');
+              this.refreshChart(); // 🔄 recharge graphe global
+            });
+          } else {
+            this.refreshChart(); // 🔄 juste recharger si stock identique
+          }
+        },
+        error: (err) => {
+          console.error('❌ Erreur lors de la modification du produit', err);
+        }
+      });
     }
   }
 
-  deleteProduct(product: any) {
-    // TODO : remplacer par un vrai appel DELETE
-    this.products = this.products.filter(p => p.name !== product.name);
-  }
 
   loadStockEvolution(productId: number) {
     this.http.get<any[]>(`http://localhost:5200/api/products/evolution/${productId}`)
@@ -294,7 +307,7 @@ export class DashboardComponent implements OnInit {
     sessionStorage.removeItem('role');
 
     // Rediriger vers la page de connexion
-    this.router.navigate(['/login']);
+    this.router.navigate(['/home']);
   }
   get isModeratorOrAdmin(): boolean {
     const role = sessionStorage.getItem('role');
@@ -302,46 +315,105 @@ export class DashboardComponent implements OnInit {
   }
   confirmDelete(product: any) {
     if (!product || !product.id) {
-      console.error("Produit invalide : ", product);
+      console.error("❌ Produit invalide :", product);
       return;
     }
 
+    console.log("🛑 Demande de suppression pour :", product);
+
     this.productToDelete = product;
+    this.actionAfterPassword = 'delete'; // 🔥 C’était peut-être oublié ici
     this.passwordModalVisible = true;
   }
-  deleteProductWithPassword(adminPassword: string) {
-    if (!this.productToDelete) return;
 
-    this.http.post('http://localhost:5200/api/products/delete-with-password', {
-      productId: this.productToDelete.id,
-      adminPassword: adminPassword
-    }).subscribe({
-      next: () => {
-        // Retirer le produit de la liste
-        this.products = this.products.filter(p => p.id !== this.productToDelete.id);
+  handlePasswordConfirmed(adminPassword: string) {
+    if (!this.productToDelete || !this.actionAfterPassword) {
+      console.warn("❌ Aucune action ou produit à traiter.");
+      return;
+    }
 
-        // Fermer le modal
-        this.passwordModalVisible = false;
-        this.productToDelete = null;
+    const action = this.actionAfterPassword;
+    const product = this.productToDelete;
 
-        // 🔁 Recharger le graphe global
-        this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
-          .subscribe({
-            next: (data) => {
-              const labels = data.map(d => d.date);
-              const values = data.map(d => d.stock);
-              this.initChart(labels, values);
+    console.log("🔐 Action demandée :", action);
+    console.log("🔐 Produit ciblé :", product);
+    console.log("🔐 Mot de passe entré :", adminPassword);
+
+    if (action === 'delete') {
+      console.log("➡️ Création du mouvement OUT pour suppression...");
+
+      const mouvement = {
+        productId: product.id,
+        quantity: product.stock,
+        movementType: 'OUT'
+      };
+
+      this.http.post('http://localhost:5200/api/mouvements', mouvement).subscribe({
+        next: () => {
+          console.log("✅ Mouvement OUT créé :", mouvement);
+
+          console.log("➡️ Envoi de la requête de suppression avec mot de passe...");
+          this.http.post('http://localhost:5200/api/products/delete-with-password', {
+            productId: product.id,
+            adminPassword
+          }).subscribe({
+            next: () => {
+              console.log("🗑️ Produit supprimé avec succès :", product.name);
+
+              this.products = this.products.filter(p => p.id !== product.id);
+              console.log("📦 Liste des produits mise à jour :", this.products);
+
+              this.refreshChart();
+              console.log("📊 Graphique mis à jour.");
+
+              this.resetPasswordModalState();
+              console.log("✅ État du modal réinitialisé.");
             },
             error: (err) => {
-              console.error("Erreur rechargement du graphe global :", err);
-              this.initChart([], []);
+              console.error("❌ Erreur lors de la suppression :", err);
+              alert("Mot de passe incorrect ou erreur lors de la suppression.");
             }
           });
-      },
-      error: () => {
-        alert("Mot de passe incorrect ou erreur de suppression.");
-      }
-    });
+        },
+        error: (err) => {
+          console.error("❌ Erreur lors de la création du mouvement OUT :", err);
+          alert("Erreur lors de la création du mouvement OUT.");
+        }
+      });
+    }
+
+    if (action === 'edit') {
+      console.log("✏️ Ouverture du modal de modification après validation du mot de passe...");
+      this.resetPasswordModalState();
+      this.openModal('edit', product);
+    }
+  }
+
+
+
+  refreshChart() {
+    this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
+      .subscribe({
+        next: (data) => {
+          const labels = data.map(d => d.date);
+          const values = data.map(d => d.stock);
+          this.initChart(labels, values);
+        },
+        error: () => {
+          this.initChart([], []);
+        }
+      });
+  }
+
+  resetPasswordModalState() {
+    this.passwordModalVisible = false;
+    this.productToDelete = null;
+    this.actionAfterPassword = null;
+  }
+  confirmEdit(product: any) {
+    this.productToDelete = product; // on peut renommer en productToEdit si tu préfères
+    this.passwordModalVisible = true;
+    this.actionAfterPassword = 'edit';
   }
 
 

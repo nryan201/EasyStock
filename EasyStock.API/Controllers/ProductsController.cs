@@ -184,7 +184,31 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+        [HttpPut("{id}")]
+        public IActionResult UpdateProduct(int id, [FromBody] ProductDto product)
+        {
+            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+            try
+            {
+                using var connection = new MySqlConnection(connStr);
+                connection.Open();
 
+                var command = new MySqlCommand("UPDATE product SET NAME = @name, STOCK = @stock, CATEGORY_ID = @categoryId WHERE ID = @id", connection);
+                command.Parameters.AddWithValue("@name", product.Name);
+                command.Parameters.AddWithValue("@stock", product.Stock);
+                command.Parameters.AddWithValue("@categoryId", product.CategoryId);
+                command.Parameters.AddWithValue("@id", id);
+
+                var affected = command.ExecuteNonQuery();
+                if (affected == 0) return NotFound();
+
+                return Ok(new { message = "Produit mis à jour avec succès" });
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { error = e.Message });
+            }
+        }
 
     }
 

@@ -107,9 +107,10 @@
           </div>
 
           <div class="product-actions" *ngIf="isModeratorOrAdmin">
-            <button class="btn btn-sm btn-outline" (click)="openModal('edit', product); $event.stopPropagation()">
+            <button class="btn btn-sm btn-outline" (click)="confirmEdit(product); $event.stopPropagation()">
               Modifier
             </button>
+
             <button class="btn btn-sm btn-outline" (click)="confirmDelete(product); $event.stopPropagation()">
               Supprimer
             </button>
@@ -169,7 +170,6 @@
 </app-category-modal>
 <app-password-check-modal
   [visible]="passwordModalVisible"
-  (confirm)="deleteProductWithPassword($event)"
-  (cancelModal)="passwordModalVisible = false">
+  (confirm)="handlePasswordConfirmed($event)"
+  (cancelModal)="resetPasswordModalState()">
 </app-password-check-modal>
-

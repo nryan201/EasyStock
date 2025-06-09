@@ -110,7 +110,7 @@ export class AdminDashboardComponent implements OnInit {
   logout() {
     sessionStorage.removeItem('username');
     sessionStorage.removeItem('role');
-    this.router.navigate(['/login']);
+    this.router.navigate(['/home']);
   }
   get adminCount(): number {
     return this.users.filter(u => u.role === 'admin').length;
