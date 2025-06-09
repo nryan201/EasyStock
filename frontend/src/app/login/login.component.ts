@@ -25,14 +25,26 @@ export class LoginComponent {
     this.http.post<any>('http://localhost:5200/api/auth/login', this.form)
       .subscribe({
         next: (res) => {
-          console.log(res);
-          localStorage.setItem('username', res.username);
-          localStorage.setItem('role', res.role);
-          this.router.navigate(['/dashboard']); // 🔁 Redirection vers page de stock
+          console.log('✅ Réponse reçue du backend :', res);
+
+          if (res.email) {
+            sessionStorage.setItem('email', res.email);
+            console.log('📥 Email stocké :', res.email);
+          } else {
+            console.warn('⚠️ Aucun email fourni dans la réponse.');
+          }
+
+          if (res.username) sessionStorage.setItem('username', res.username);
+          if (res.role) sessionStorage.setItem('role', res.role);
+          if (res.createdAt) sessionStorage.setItem('createdAt', res.createdAt);
+
+          this.router.navigate(['/dashboard']); // Redirection après login
         },
         error: (err) => {
+          console.error('❌ Erreur lors de la connexion :', err);
           this.errorMessage = err.error?.error || 'Erreur lors de la connexion';
         }
       });
   }
+
 }

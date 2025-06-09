@@ -12,7 +12,12 @@
           <span class="logo-text">EasyStock</span>
         </div>
         <div class="user-menu">
-          <span class="username">{{ username }}</span>
+          <span
+            class="username"
+            [class.clickable]="isAdmin"
+            (click)="goToAdmin()">
+            {{ username }}
+          </span>
           <button class="btn btn-secondary" (click)="logout()">Déconnexion</button>
         </div>
       </div>
@@ -28,7 +33,9 @@
       <nav class="sidebar-nav">
         <ul class="category-list">
           <li *ngFor="let category of categories" class="category-item">
-            <a href="#" class="category-link">{{ category.name }}</a>
+            <a href="#" class="category-link" (click)="onCategoryClick(category.id); $event.preventDefault()">
+              {{ category.name }}
+            </a>
           </li>
           <li *ngIf="categories.length === 0" class="category-item empty">
             Aucune catégorie disponible
@@ -36,9 +43,19 @@
         </ul>
       </nav>
       <div class="sidebar-footer">
-        <button class="btn btn-primary btn-block" (click)="openCategoryModal()">Ajouter une catégorie</button>
+        <button
+          *ngIf="selectedCategoryId"
+          class="btn btn-primary btn-block"
+          (click)="resetCategory(); $event.preventDefault()">
+          Toutes les catégories
+        </button>
 
+        <button class="btn btn-primary btn-block mt-2" (click)="openCategoryModal()">
+          Ajouter une catégorie
+        </button>
       </div>
+
+
     </aside>
 
     <!-- Main content -->
@@ -77,10 +94,11 @@
           <button class="btn btn-primary" (click)="openModal('add')">Ajouter un produit</button>
         </div>
 
-
-
         <div class="product-list">
-          <div *ngFor="let product of products" class="product-card">
+          <div
+            *ngFor="let product of filteredProducts2"
+            class="product-card"
+            (click)="loadStockEvolution(product.id)">
             <div class="product-header">
               <h3 class="product-name">{{ product.name }}</h3>
               <span class="product-stock" [ngClass]="{'stock-low': product.stock < 5, 'stock-out': product.stock === 0}">
@@ -92,11 +110,11 @@
               <button class="btn btn-sm btn-outline">Supprimer</button>
             </div>
           </div>
+        </div>
 
-          <div *ngIf="products.length === 0" class="empty-state">
-            <p>Aucun produit disponible</p>
-            <button class="btn btn-primary">Ajouter votre premier produit</button>
-          </div>
+        <div *ngIf="products.length === 0" class="empty-state">
+          <p>Aucun produit disponible</p>
+          <button class="btn btn-primary" (click)="openModal('add')">Ajouter votre premier produit</button>
         </div>
       </div>
 
@@ -123,11 +141,14 @@
           </svg>
           <span class="footer-logo-text">EasyStock</span>
         </div>
-        <p class="footer-copyright">&copy; 2024 EasyStock. Tous droits réservés.</p>
+        <p class="footer-copyright">
+          &copy; 2025 EasyStock. Tous droits réservés.
+        </p>
       </div>
     </div>
   </footer>
 </div>
+
 <app-product-modal
   [visible]="modalVisible"
   [product]="currentProduct"
@@ -136,9 +157,9 @@
   (save)="saveProduct($event)"
   (close)="closeModal()">
 </app-product-modal>
+
 <app-category-modal
   [visible]="categoryModalVisible"
   (save)="saveCategory($event)"
-  (close)="closeCategoryModal()"
-></app-category-modal>
-
+  (close)="closeCategoryModal()">
+</app-category-modal>

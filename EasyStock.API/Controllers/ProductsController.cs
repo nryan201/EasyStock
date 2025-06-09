@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
-
+using EasyStock.API.Dtos;
 namespace EasyStock.API.Controllers
 {
     [ApiController]
@@ -24,7 +24,8 @@ namespace EasyStock.API.Controllers
                 command.Parameters.AddWithValue("@stock", product.Stock);
                 command.Parameters.AddWithValue("@categoryId", product.CategoryId);
                 command.ExecuteNonQuery();
-                return Ok(new { message = "Product created successfully" });
+                long insertedId = command.LastInsertedId;
+                return Ok(new { id = insertedId, message = "Product created successfully" });
             }
             catch (Exception e)
             {
@@ -36,7 +37,7 @@ namespace EasyStock.API.Controllers
 
         public class ProductDto
         {
-            public string Name { get; set; }= string.Empty;
+            public string Name { get; set; } = string.Empty;
             public int Stock { get; set; }
             public int CategoryId { get; set; }
         }
@@ -50,8 +51,8 @@ namespace EasyStock.API.Controllers
             {
                 using var connection = new MySqlConnection(connstr_);
                 connection.Open();
-                
-                var command= new MySqlCommand("SELECT * FROM product", connection);
+
+                var command = new MySqlCommand("SELECT * FROM product", connection);
                 using var reader = command.ExecuteReader();
 
                 while (reader.Read())
@@ -63,18 +64,20 @@ namespace EasyStock.API.Controllers
                         CategoryId = Convert.ToInt32(reader["CATEGORY_ID"])
                     });
                 }
+
                 return Ok(products);
             }
             catch (Exception e)
             {
                 return StatusCode(500, new { error = e.Message });
             }
-            
-            
-            
-            
-            
+
+
+
+
+
         }
+
         [HttpGet("evolution/{productId}")]
         public IActionResult GetStockEvolution(int productId)
         {
@@ -118,6 +121,42 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+        [HttpGet("by-category/{categoryId}")]
+        public IActionResult GetByCategory(int categoryId)
+        {
+            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+            var products = new List<ProductDto>();
+
+            try
+            {
+                using var connection = new MySqlConnection(connStr);
+                connection.Open();
+
+                var command = new MySqlCommand("SELECT * FROM product WHERE CATEGORY_ID = @categoryId", connection);
+                command.Parameters.AddWithValue("@categoryId", categoryId);
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    products.Add(new ProductDto
+                    {
+                        Name = reader["NAME"].ToString() ?? string.Empty,
+                        Stock = Convert.ToInt32(reader["STOCK"]),
+                        CategoryId = Convert.ToInt32(reader["CATEGORY_ID"])
+                    });
+                }
+
+                return Ok(products);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, new { error = e.Message });
+            }
+        }
+
     }
+
+
 }
+
 

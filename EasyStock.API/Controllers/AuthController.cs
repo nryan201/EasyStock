@@ -49,11 +49,16 @@ namespace EasyStock.API.Controllers
 
                     if (dbPassword == credentials.Password)
                     {
+                        var createdAt = reader.GetDateTime("createdAt");
+                        var daysSinceCreation = (DateTime.Now - createdAt).Days;
                         return Ok(new
                         {
                             message = "Connexion réussie",
                             username = reader.GetString("username"),
-                            role = reader.GetString("role")
+                            role = reader.GetString("role"),
+                            createdAt = createdAt,
+                            daysSinceCreation = daysSinceCreation,
+                            email = reader.GetString("email")
                         });
                     }
                     else

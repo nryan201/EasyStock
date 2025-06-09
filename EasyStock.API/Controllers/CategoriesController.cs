@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
-
+using EasyStock.API.Dtos;
 namespace EasyStock.API.Controllers
 {
     [ApiController]
@@ -58,11 +58,39 @@ namespace EasyStock.API.Controllers
             
             
         }
-        
-        public class CategoryDto
+        [HttpGet("by-category/{categoryId}")]
+        public IActionResult GetProductsByCategory(int categoryId)
         {
-            public int id { get; set; }
-            public string Name { get; set; }= string.Empty;
+            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+            var products = new List<ProductDto>();
+
+            try
+            {
+                using var connection = new MySqlConnection(connStr);
+                connection.Open();
+
+                var command = new MySqlCommand("SELECT * FROM product WHERE CATEGORY_ID = @categoryId", connection);
+                command.Parameters.AddWithValue("@categoryId", categoryId);
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    products.Add(new ProductDto
+                    {
+                        Id = Convert.ToInt32(reader["ID"]),
+                        Name = reader["NAME"].ToString() ?? string.Empty,
+                        Stock = Convert.ToInt32(reader["STOCK"]),
+                        CategoryId = Convert.ToInt32(reader["CATEGORY_ID"])
+                    });
+                }
+
+                return Ok(products);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = ex.Message });
+            }
         }
+        
     }
 }

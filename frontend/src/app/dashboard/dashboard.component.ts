@@ -13,28 +13,39 @@ import { CategoryModalComponent } from '../components/category-modal/category-mo
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
-  chart: Chart | undefined;
+
+  // PROPRIETES
   categories: { id: number; name: string }[] = [];
   products: any[] = [];
+  filteredProducts: any[] = []; // Pour le filtrage dynamique
   username: string = '';
   currentProduct: any = { name: '', stock: 0, categoryId: null };
+  selectedCategoryId: number | null = null;
+  chart: Chart | undefined;
+  modalVisible = false;
+  modalMode: 'add' | 'edit' = 'add';
+  categoryModalVisible = false;
+  isAdmin: boolean = false;
+
   constructor(private http: HttpClient, private router: Router) {}
 
+
+  // INITIALISATION DU COMPOSANT
   ngOnInit() {
-    // Récupérer le nom d'utilisateur du localStorage
     if (typeof window !== 'undefined') {
-      this.username = localStorage.getItem('username') || 'Utilisateur';
+      this.username = sessionStorage.getItem('username') || 'Utilisateur';
+      const role = sessionStorage.getItem('role');
+      this.isAdmin = role === 'admin';
     } else {
       this.username = 'Utilisateur';
+      this.isAdmin = false;
     }
-
 
     // Chargement des catégories
     this.http.get<any[]>('http://localhost:5200/api/categories')
       .subscribe({
         next: (data) => {
           this.categories = data;
-          console.log('Catégories récupérées :', this.categories);
         },
         error: (err) => {
           console.error('Erreur lors du chargement des catégories', err);
@@ -45,6 +56,7 @@ export class DashboardComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.products = data;
+          this.filteredProducts = data;
         },
         error: (err) => {
           console.error('Erreur lors du chargement des produits', err);
@@ -52,9 +64,8 @@ export class DashboardComponent implements OnInit {
       });
 
     // Chargement de l'évolution d'un produit test (ID 1)
-    const productId = 1;
 
-    this.http.get<any[]>(`http://localhost:5200/api/products/evolution/${productId}`)
+    this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
       .subscribe({
         next: (data) => {
           const labels = data.map(d => d.date);
@@ -62,19 +73,25 @@ export class DashboardComponent implements OnInit {
           this.initChart(labels, values);
         },
         error: (err) => {
-          console.error('Erreur lors du chargement de l\'évolution du stock', err);
-          // Créer un graphique vide en cas d'erreur
+          console.error('❌ Erreur chargement global', err);
           this.initChart([], []);
         }
       });
+
   }
 
   initChart(labels: string[], values: number[]) {
     if (typeof document === 'undefined') return;
     const canvas = document.getElementById('stockChart') as HTMLCanvasElement;
-    if (!canvas) return;
+    if (!canvas) {
+      console.warn('⚠️ Canvas non trouvé');
+      return;
+    }
 
-    if (this.chart) this.chart.destroy();
+    if (this.chart) {
+      this.chart.destroy();
+    }
+
 
     this.chart = new Chart(canvas, {
       type: 'line',
@@ -101,23 +118,7 @@ export class DashboardComponent implements OnInit {
       }
     });
   }
-
-  logout() {
-    // Supprimer les informations d'authentification
-    localStorage.removeItem('username');
-    localStorage.removeItem('role');
-
-    // Rediriger vers la page de connexion
-    this.router.navigate(['/login']);
-  }
-  getOutOfStockCount(): number {
-    return this.products.filter(p => p.stock === 0).length;
-  }
-  modalVisible = false;
-  modalMode: 'add' | 'edit' = 'add';
-
-
-
+  // PRODUITS
   openModal(mode: 'add' | 'edit', product: any = { name: '', stock: 0 }) {
     this.modalMode = mode;
     this.currentProduct = { ...product };
@@ -130,12 +131,39 @@ export class DashboardComponent implements OnInit {
 
   saveProduct(product: any) {
     if (this.modalMode === 'add') {
-      console.log('Produit envoyé :', JSON.stringify(product));
-
-
-      this.http.post('http://localhost:5200/api/products', product).subscribe(() => {
+      this.http.post<any>('http://localhost:5200/api/products', product).subscribe(res => {
+        // 1. Ajouter l'ID renvoyé par l'API
+        product.id = res.id;
         this.products.push(product);
         this.modalVisible = false;
+
+        // 2. Créer un mouvement "IN"
+        const mouvement = {
+          productId: product.id,
+          quantity: product.stock,
+          movementType: 'IN'
+        };
+
+        this.http.post('http://localhost:5200/api/mouvements', mouvement).subscribe(() => {
+          console.log('✅ Mouvement créé pour le produit :', mouvement);
+
+          // 3. Recharger le graphique global après le mouvement
+          this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
+            .subscribe({
+              next: (data) => {
+                console.log('📊 Données globales après ajout :', data);
+                const labels = data.map(d => d.date);
+                const values = data.map(d => d.stock);
+                this.initChart(labels, values);
+              },
+              error: (err) => {
+                console.error('❌ Erreur lors du rechargement du graphique global :', err);
+                this.initChart([], []);
+              }
+            });
+        });
+      }, err => {
+        console.error('❌ Erreur lors de la création du produit', err);
       });
     } else {
       const index = this.products.findIndex(p => p.name === this.currentProduct.name);
@@ -146,13 +174,28 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-
   deleteProduct(product: any) {
     // TODO : remplacer par un vrai appel DELETE
     this.products = this.products.filter(p => p.name !== product.name);
   }
-  categoryModalVisible = false;
-  newCategoryName = '';
+
+  loadStockEvolution(productId: number) {
+    this.http.get<any[]>(`http://localhost:5200/api/products/evolution/${productId}`)
+      .subscribe({
+        next: (data) => {
+          console.log('📈 Données produit :', data);
+          const labels = data.map(d => d.date);
+          const values = data.map(d => d.stock);
+          this.initChart(labels, values);
+        },
+        error: (err) => {
+          console.error('Erreur produit', err);
+          this.initChart([], []);
+        }
+      });
+  }
+
+//CATEGORIES
 
   openCategoryModal() {
     this.categoryModalVisible = true;
@@ -167,6 +210,97 @@ export class DashboardComponent implements OnInit {
       this.categories.push({ id: this.categories.length + 1, name }); // 🔁 tu peux recharger depuis l'API si besoin
       this.categoryModalVisible = false;
     });
+
   }
+
+  onCategoryClick(categoryId: number) {
+    this.selectedCategoryId = categoryId;
+
+    // 🔁 Charger les mouvements (graphe)
+    this.http.get<any[]>(`http://localhost:5200/api/mouvements/by-category/${categoryId}`)
+      .subscribe({
+        next: (data) => {
+          const grouped: { [date: string]: number } = {};
+          data.forEach(entry => {
+            const sign = entry.type === 'IN' ? 1 : -1;
+            grouped[entry.date] = (grouped[entry.date] || 0) + sign * entry.quantity;
+          });
+
+          const sortedDates = Object.keys(grouped).sort();
+          let cumul = 0;
+          const labels: string[] = [];
+          const values: number[] = [];
+
+          sortedDates.forEach(date => {
+            cumul += grouped[date];
+            labels.push(date);
+            values.push(cumul);
+          });
+
+          this.initChart(labels, values);
+        },
+        error: (err) => {
+          console.error("Erreur chargement mouvements catégorie", err);
+          this.initChart([], []);
+        }
+      });
+  }
+
+  resetCategory() {
+    this.selectedCategoryId = null;
+
+    // Recharge graphe global
+    this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
+      .subscribe({
+        next: (data) => {
+          const labels = data.map(d => d.date);
+          const values = data.map(d => d.stock);
+          this.initChart(labels, values);
+        },
+        error: () => {
+          this.initChart([], []);
+        }
+      });
+  }
+  goToAdmin() {
+    if (this.isAdmin) {
+      this.router.navigate(['/admin']);
+    }
+  }
+
+// STATISTIQUES
+
+  getOutOfStockCount(): number {
+    return this.products.filter(p => p.stock === 0).length;
+  }
+
+  // FILTRAGE DYNAMIQUE DES PRODUITS
+
+  get filteredProducts2() {
+    if (!this.selectedCategoryId) {
+      return this.products;
+    }
+    return this.products.filter(p => p.categoryId === this.selectedCategoryId);
+  }
+
+
+  // DECONNEXION
+
+  logout() {
+    // Supprimer les informations d'authentification
+    sessionStorage.removeItem('username');
+    sessionStorage.removeItem('role');
+
+    // Rediriger vers la page de connexion
+    this.router.navigate(['/login']);
+  }
+
+
+
+
+
+
+
+
 
 }
