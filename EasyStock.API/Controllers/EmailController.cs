@@ -1,28 +1,25 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Mail;
-
+using EasyStock.API.Dtos;
 namespace EasyStock.API.Controllers
 {
     [ApiController]
     [Route("api/email")]
     public class EmailController : ControllerBase
     {
-        // Tu peux aussi stocker les codes ici si tu veux les vérifier plus tard
         private static Dictionary<string, string> _codes = new();
 
         [HttpPost("send-code")]
         public IActionResult SendEmail([FromBody] EmailRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.To))
-            {
                 return BadRequest(new { error = "L'adresse e-mail est requise." });
-            }
 
             try
             {
-                var code = new Random().Next(100000, 999999).ToString(); // Code à 6 chiffres
-                _codes[request.To] = code; // Stocké en mémoire (si tu veux le vérifier plus tard)
+                var code = new Random().Next(100000, 999999).ToString();
+                _codes[request.To] = code;
 
                 var fromAddress = new MailAddress("easystockYnov@gmail.com", "EasyStock");
                 var toAddress = new MailAddress(request.To);
@@ -47,8 +44,7 @@ namespace EasyStock.API.Controllers
                 };
 
                 smtp.Send(message);
-
-                return Ok(new { message = "E-mail envoyé avec succès.", code }); // tu peux retirer `code` ici pour ne pas l’afficher
+                return Ok(new { message = "E-mail envoyé avec succès.", code });
             }
             catch (Exception ex)
             {
@@ -56,9 +52,51 @@ namespace EasyStock.API.Controllers
             }
         }
 
-        public class EmailRequest
+        [HttpPost("send-incident")]
+        public IActionResult SendIncidentEmail([FromBody] IncidentTicket ticket)
         {
-            public string To { get; set; } = string.Empty;
+            if (string.IsNullOrWhiteSpace(ticket.Sender) ||
+                string.IsNullOrWhiteSpace(ticket.ProblemType) ||
+                string.IsNullOrWhiteSpace(ticket.Message))
+            {
+                return BadRequest(new { error = "Tous les champs sont requis." });
+            }
+
+            try
+            {
+                var fromAddress = new MailAddress("easystockYnov@gmail.com", "EasyStock");
+                var toAddress = new MailAddress("easystockynov@gmail.com");
+                const string fromPassword = "wcxb sfrw cszf mlsw";
+                var subject = $"🛠️ Ticket incident : {ticket.ProblemType}";
+
+                string body = $"📨 Envoyé par : {ticket.Sender}\n" +
+                              $"📌 Problème : {ticket.ProblemType}\n\n" +
+                              $"{ticket.Message}";
+
+                var smtp = new SmtpClient
+                {
+                    Host = "smtp.gmail.com",
+                    Port = 587,
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                    Credentials = new NetworkCredential(fromAddress.Address, fromPassword)
+                };
+
+                using var message = new MailMessage(fromAddress, toAddress)
+                {
+                    Subject = subject,
+                    Body = body
+                };
+
+                smtp.Send(message);
+                return Ok(new { message = "✅ Ticket envoyé au responsable réseaux." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { error = "❌ Erreur lors de l'envoi : " + ex.Message });
+            }
         }
+        
     }
 }

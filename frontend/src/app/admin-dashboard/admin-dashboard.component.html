@@ -61,7 +61,19 @@
               ⏳ {{ daysRemaining }} jours restants avant activation du paiement
             </p>
           </div>
-          <div class="welcome-icon">👋</div>
+
+          <!-- Si abonnement non activé -->
+          <div class="action-card" *ngIf="!isAdmin" (click)="goToPayment()">
+            <div class="action-icon">💳</div>
+            <div class="action-content">
+              <h3 class="action-title">Activer l’abonnement</h3>
+              <p class="action-description">Souscrivez dès maintenant pour profiter de toutes les fonctionnalités</p>
+            </div>
+            <div class="action-arrow">→</div>
+          </div>
+
+          <!-- Si déjà payé -->
+          <div class="welcome-icon" *ngIf="isAdmin">👋</div>
         </div>
       </div>
 
@@ -90,11 +102,11 @@
             <div class="action-arrow">→</div>
           </div>
 
-          <div class="action-card disabled">
+          <div class="action-card" (click)="openTicketModal()">
             <div class="action-icon">📊</div>
             <div class="action-content">
-              <h3 class="action-title">Rapports système</h3>
-              <p class="action-description">Consultez les statistiques d'utilisation (Bientôt disponible)</p>
+              <h3 class="action-title">Ticket Incident</h3>
+              <p class="action-description">Envoyez un ticket au responsable réseaux</p>
             </div>
             <div class="action-arrow">→</div>
           </div>
@@ -175,4 +187,14 @@
     (close)="closeUserModal()"
     (updateRole)="updateUserRole($event)">
   </app-manage-users-modal>
+
+  <app-incident-ticket-modal
+    [visible]="ticketModalVisible"
+    [senderEmail]="username"
+    (submitTicket)="handleSubmitTicket($event)"
+    (close)="closeTicketModal()">
+  </app-incident-ticket-modal>
+
+
+
 </div>

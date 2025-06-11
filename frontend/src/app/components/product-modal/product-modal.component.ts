@@ -1,6 +1,21 @@
-import { Component, EventEmitter, Input, Output, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  ViewChild,
+  ElementRef,
+  AfterViewInit
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
+interface Product {
+  id?: number;
+  name: string;
+  stock: number;
+  categoryId: number | null;
+}
 
 @Component({
   selector: 'app-product-modal',
@@ -11,16 +26,18 @@ import { FormsModule } from '@angular/forms';
 })
 export class ProductModalComponent implements AfterViewInit {
   @Input() visible = false;
-  @Input() product = { name: '', stock: 0, categoryId: null };
+  @Input() product: Product = { name: '', stock: 0, categoryId: null };
   @Input() mode: 'add' | 'edit' = 'add';
   @Input() categories: { id: number; name: string }[] = [];
+  @Input() allProducts: Product[] = [];
 
-  @Output() save = new EventEmitter<any>();
+  @Output() save = new EventEmitter<Product>();
   @Output() close = new EventEmitter<void>();
   @ViewChild('nameInput') nameInput!: ElementRef;
 
+  errorMessage: string = '';
+
   ngAfterViewInit() {
-    // Focus automatique sur l'input nom quand la modal s'ouvre
     if (this.visible && this.nameInput) {
       setTimeout(() => {
         this.nameInput.nativeElement.focus();
@@ -29,17 +46,26 @@ export class ProductModalComponent implements AfterViewInit {
   }
 
   onSubmit() {
-    if (this.isFormValid()) {
-      this.save.emit({ ...this.product });
+    const nameExists = this.allProducts.some(p =>
+      p.name.trim().toLowerCase() === this.product.name.trim().toLowerCase() &&
+      p.id !== this.product.id
+    );
+
+    if (nameExists) {
+      this.errorMessage = '❌ Ce nom de produit existe déjà.';
+      return;
     }
+
+    this.errorMessage = '';
+    this.save.emit({ ...this.product });
   }
 
   onCancel() {
+    this.errorMessage = '';
     this.close.emit();
   }
 
   onBackdropClick(event: Event) {
-    // Fermer la modal si on clique sur le backdrop
     if (event.target === event.currentTarget) {
       this.onCancel();
     }

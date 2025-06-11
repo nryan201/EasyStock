@@ -1,0 +1,102 @@
+<div class="modal-backdrop" *ngIf="visible" (click)="onBackdropClick($event)">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <!-- Bouton de fermeture -->
+    <button class="close-button" (click)="onCancel()" aria-label="Fermer">
+      ×
+    </button>
+
+    <!-- Icône du ticket -->
+    <div class="modal-icon">
+      🎫
+    </div>
+
+    <h2 class="modal-title">Ticket d'incident</h2>
+    <p class="modal-subtitle">Signalez un problème technique pour obtenir de l'aide</p>
+
+    <div class="modal-content">
+      <form (ngSubmit)="onSubmit()" class="ticket-form">
+
+        <!-- Email de l'expéditeur -->
+        <div class="form-group">
+          <label class="form-label" for="sender-email">
+            Email de l'expéditeur <span class="required">*</span>
+          </label>
+          <div class="input-container">
+            <input
+              #emailInput
+              id="sender-email"
+              type="email"
+              class="form-input"
+              [(ngModel)]="senderEmail"
+              name="senderEmail"
+              required
+              placeholder="votre.email@exemple.com"
+            />
+            <span class="input-icon">📧</span>
+          </div>
+        </div>
+
+        <!-- Type de problème -->
+        <div class="form-group">
+          <label class="form-label" for="problem-type">
+            Type de problème <span class="required">*</span>
+          </label>
+          <div class="select-container">
+            <select
+              id="problem-type"
+              class="form-select"
+              [(ngModel)]="problemType"
+              name="problemType"
+              required
+            >
+              <option value="" disabled>Choisir un type de problème</option>
+              <option *ngFor="let problem of problemTypes" [value]="problem">
+                {{ problem }}
+              </option>
+            </select>
+            <span class="select-arrow">▼</span>
+          </div>
+        </div>
+
+        <!-- Priorité -->
+
+
+        <!-- Message -->
+        <div class="form-group">
+          <label class="form-label" for="message">
+            Description du problème <span class="required">*</span>
+          </label>
+          <textarea
+            id="message"
+            class="form-textarea"
+            [(ngModel)]="message"
+            name="message"
+            rows="5"
+            placeholder="Décrivez le problème en détail : que s'est-il passé ? À quel moment ? Quelles étapes avez-vous suivies ?"
+            required
+          ></textarea>
+          <div class="character-count">
+            {{ message.length }}/500 caractères
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" (click)="onCancel()">
+        Annuler
+      </button>
+      <button
+        type="button"
+        class="btn btn-primary"
+        (click)="onSubmit()"
+        [disabled]="!isFormValid() || isSubmitting"
+      >
+        <span *ngIf="isSubmitting" class="spinner"></span>
+        <span *ngIf="!isSubmitting">📤 Envoyer le ticket</span>
+      </button>
+    </div>
+  </div>
+</div>

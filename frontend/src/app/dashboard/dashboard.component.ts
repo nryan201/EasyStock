@@ -20,7 +20,7 @@ export class DashboardComponent implements OnInit {
   products: any[] = [];
   filteredProducts: any[] = []; // Pour le filtrage dynamique
   username: string = '';
-  currentProduct: any = { name: '', stock: 0, categoryId: null };
+  currentProduct: any = {name: '', stock: 0, categoryId: null};
   selectedCategoryId: number | null = null;
   chart: Chart | undefined;
   modalVisible = false;
@@ -30,18 +30,19 @@ export class DashboardComponent implements OnInit {
   productToDelete: any = null;
   passwordModalVisible = false;
   actionAfterPassword: 'edit' | 'delete' | null = null;
+  role: string = '';
 
 
-
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) {
+  }
 
 
   // INITIALISATION DU COMPOSANT
   ngOnInit() {
     if (typeof window !== 'undefined') {
       this.username = sessionStorage.getItem('username') || 'Utilisateur';
-      const role = sessionStorage.getItem('role');
-      this.isAdmin = role === 'admin';
+      this.role = sessionStorage.getItem('role') || 'user';
+      this.isAdmin = this.role === 'admin';
     } else {
       this.username = 'Utilisateur';
       this.isAdmin = false;
@@ -124,10 +125,11 @@ export class DashboardComponent implements OnInit {
       }
     });
   }
+
   // PRODUITS
-  openModal(mode: 'add' | 'edit', product: any = { name: '', stock: 0 }) {
+  openModal(mode: 'add' | 'edit', product: any = {name: '', stock: 0}) {
     this.modalMode = mode;
-    this.currentProduct = { ...product };
+    this.currentProduct = {...product};
     this.modalVisible = true;
   }
 
@@ -137,13 +139,25 @@ export class DashboardComponent implements OnInit {
 
   saveProduct(product: any) {
     if (this.modalMode === 'add') {
-      // ➤ Ajout d’un nouveau produit
+      const nameLower = product.name.trim().toLowerCase();
+      const alreadyExists = this.products.some(p => p.name.trim().toLowerCase() === nameLower);
+
+      if (alreadyExists) {
+        alert('❌ Ce produit existe déjà. Choisissez un autre nom.');
+        return;
+      }
+
       this.http.post<any>('http://localhost:5200/api/products', product).subscribe(res => {
         product.id = res.id;
-        this.products.push(product);
+
+        // ⛔ NE PAS faire push si une catégorie est sélectionnée, car la liste sera rechargée
+        if (!this.selectedCategoryId) {
+          this.products.push(product);
+        }
+
         this.modalVisible = false;
 
-        // ➤ Créer un mouvement initial
+        // ✅ Créer un mouvement initial
         const mouvement = {
           productId: product.id,
           quantity: product.stock,
@@ -152,14 +166,20 @@ export class DashboardComponent implements OnInit {
 
         this.http.post('http://localhost:5200/api/mouvements', mouvement).subscribe(() => {
           console.log('✅ Mouvement créé pour le produit :', mouvement);
-          this.refreshChart(); // 🔄 met à jour le graphe global
+          this.refreshChart();
         });
+
+        // ✅ Mise à jour de la liste des produits affichés
+        if (this.selectedCategoryId) {
+          this.loadProductsByCategory(this.selectedCategoryId);
+        } else {
+          this.loadProducts();
+        }
       }, err => {
         console.error('❌ Erreur lors de la création du produit', err);
       });
 
     } else {
-      // ➤ Modification du produit existant
       const index = this.products.findIndex(p => p.id === product.id);
       const ancienStock = this.products[index]?.stock ?? 0;
       const difference = product.stock - ancienStock;
@@ -169,6 +189,7 @@ export class DashboardComponent implements OnInit {
           if (index > -1) {
             this.products[index] = product;
           }
+
           this.modalVisible = false;
 
           if (difference !== 0) {
@@ -180,10 +201,17 @@ export class DashboardComponent implements OnInit {
 
             this.http.post('http://localhost:5200/api/mouvements', mouvement).subscribe(() => {
               console.log('🔁 Mouvement enregistré pour modification de stock');
-              this.refreshChart(); // 🔄 recharge graphe global
+              this.refreshChart();
             });
           } else {
-            this.refreshChart(); // 🔄 juste recharger si stock identique
+            this.refreshChart();
+          }
+
+          // ✅ Recharger les produits selon le contexte
+          if (this.selectedCategoryId) {
+            this.loadProductsByCategory(this.selectedCategoryId);
+          } else {
+            this.loadProducts();
           }
         },
         error: (err) => {
@@ -193,6 +221,18 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  loadProducts() {
+    this.http.get<any[]>('http://localhost:5200/api/products')
+      .subscribe({
+        next: (data) => {
+          this.products = data;
+        },
+        error: (err) => {
+          console.error("❌ Erreur lors du chargement des produits :", err);
+          this.products = [];
+        }
+      });
+  }
 
   loadStockEvolution(productId: number) {
     this.http.get<any[]>(`http://localhost:5200/api/products/evolution/${productId}`)
@@ -221,8 +261,8 @@ export class DashboardComponent implements OnInit {
   }
 
   saveCategory(name: string) {
-    this.http.post('http://localhost:5200/api/categories', { name }).subscribe(() => {
-      this.categories.push({ id: this.categories.length + 1, name }); // 🔁 tu peux recharger depuis l'API si besoin
+    this.http.post('http://localhost:5200/api/categories', {name}).subscribe(() => {
+      this.categories.push({id: this.categories.length + 1, name}); // 🔁 tu peux recharger depuis l'API si besoin
       this.categoryModalVisible = false;
     });
 
@@ -230,6 +270,9 @@ export class DashboardComponent implements OnInit {
 
   onCategoryClick(categoryId: number) {
     this.selectedCategoryId = categoryId;
+
+    // ✅ Recharger les produits filtrés
+    this.loadProductsByCategory(categoryId);
 
     // 🔁 Charger les mouvements (graphe)
     this.http.get<any[]>(`http://localhost:5200/api/mouvements/by-category/${categoryId}`)
@@ -261,10 +304,25 @@ export class DashboardComponent implements OnInit {
       });
   }
 
+  loadProductsByCategory(categoryId: number) {
+    this.http.get<any[]>(`http://localhost:5200/api/products/by-category/${categoryId}`)
+      .subscribe({
+        next: (data) => {
+          this.products = data;
+        },
+        error: (err) => {
+          console.error("❌ Erreur lors du chargement des produits par catégorie :", err);
+          this.products = [];
+        }
+      });
+  }
   resetCategory() {
     this.selectedCategoryId = null;
 
-    // Recharge graphe global
+    // ✅ Recharge tous les produits
+    this.loadProducts();
+
+    // ✅ Recharge le graphe global
     this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
       .subscribe({
         next: (data) => {
@@ -277,6 +335,8 @@ export class DashboardComponent implements OnInit {
         }
       });
   }
+
+
   goToAdmin() {
     if (this.isAdmin) {
       this.router.navigate(['/admin']);
@@ -309,21 +369,34 @@ export class DashboardComponent implements OnInit {
     // Rediriger vers la page de connexion
     this.router.navigate(['/home']);
   }
+
   get isModeratorOrAdmin(): boolean {
     const role = sessionStorage.getItem('role');
     return role === 'admin' || role === 'moderator';
   }
+
   confirmDelete(product: any) {
-    if (!product || !product.id) {
-      console.error("❌ Produit invalide :", product);
-      return;
-    }
-
-    console.log("🛑 Demande de suppression pour :", product);
-
     this.productToDelete = product;
-    this.actionAfterPassword = 'delete'; // 🔥 C’était peut-être oublié ici
-    this.passwordModalVisible = true;
+    this.actionAfterPassword = 'delete';
+
+    if (this.isAdmin) {
+      // Appel direct si admin
+      this.handlePasswordConfirmed('');
+    } else {
+      this.passwordModalVisible = true;
+    }
+  }
+
+
+  confirmEdit(product: any) {
+    this.productToDelete = product;
+    this.actionAfterPassword = 'edit';
+
+    if (this.isAdmin) {
+      this.handlePasswordConfirmed('');
+    } else {
+      this.passwordModalVisible = true;
+    }
   }
 
   handlePasswordConfirmed(adminPassword: string) {
@@ -355,12 +428,29 @@ export class DashboardComponent implements OnInit {
           console.log("➡️ Envoi de la requête de suppression avec mot de passe...");
           this.http.post('http://localhost:5200/api/products/delete-with-password', {
             productId: product.id,
-            adminPassword
+            adminPassword,
+            role: sessionStorage.getItem('role') || ''
           }).subscribe({
             next: () => {
               console.log("🗑️ Produit supprimé avec succès :", product.name);
 
-              this.products = this.products.filter(p => p.id !== product.id);
+              if (this.selectedCategoryId) {
+                this.http.get<any[]>(`http://localhost:5200/api/products/by-category/${this.selectedCategoryId}`)
+                  .subscribe({
+                    next: (data) => {
+                      this.products = data;
+                      this.refreshChart();
+                      console.log("📦 Produits catégorie rechargés");
+                    },
+                    error: (err) => {
+                      console.error("❌ Erreur chargement produits catégorie après suppression :", err);
+                    }
+                  });
+              } else {
+                this.loadProducts();
+                this.refreshChart();
+              }
+
               console.log("📦 Liste des produits mise à jour :", this.products);
 
               this.refreshChart();
@@ -390,7 +480,6 @@ export class DashboardComponent implements OnInit {
   }
 
 
-
   refreshChart() {
     this.http.get<any[]>('http://localhost:5200/api/mouvements/evolution-global')
       .subscribe({
@@ -410,18 +499,9 @@ export class DashboardComponent implements OnInit {
     this.productToDelete = null;
     this.actionAfterPassword = null;
   }
-  confirmEdit(product: any) {
-    this.productToDelete = product; // on peut renommer en productToEdit si tu préfères
-    this.passwordModalVisible = true;
-    this.actionAfterPassword = 'edit';
+
+
+  canModifyOrDelete(): boolean {
+    return this.role === 'admin' || this.role === 'moderator';
   }
-
-
-
-
-
-
-
-
-
 }

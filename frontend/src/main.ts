@@ -8,8 +8,9 @@ import {provideHttpClient} from '@angular/common/http';
 
 bootstrapApplication(AppComponent, {
   providers: [
+    provideHttpClient(),
     provideRouter(routes),
-    importProvidersFrom(FormsModule),
-    provideHttpClient()
+    importProvidersFrom(FormsModule)
+
   ]
 });

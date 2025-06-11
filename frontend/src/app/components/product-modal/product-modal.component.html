@@ -23,7 +23,7 @@
           #nameInput
         />
       </div>
-
+      <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
       <div class="form-group">
         <label for="stock" class="form-label">Quantité en stock</label>
         <input

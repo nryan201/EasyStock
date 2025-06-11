@@ -132,6 +132,7 @@ namespace EasyStock.API.Controllers
                 {
                     products.Add(new ProductDto
                     {
+                        Id = Convert.ToInt32(reader["ID"]),
                         Name = reader["NAME"].ToString() ?? string.Empty,
                         Stock = Convert.ToInt32(reader["STOCK"]),
                         CategoryId = Convert.ToInt32(reader["CATEGORY_ID"])
@@ -148,28 +149,31 @@ namespace EasyStock.API.Controllers
         [HttpPost("delete-with-password")]
         public IActionResult DeleteWithPassword([FromBody] DeleteWithPasswordDto dto)
         {
+            Console.WriteLine($"🔍 Rôle reçu : {dto.Role}");
             string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
-    
+
             try
             {
                 using var connection = new MySqlConnection(connStr);
                 connection.Open();
-
-                // Vérification du mot de passe admin
-                var passwordCmd = new MySqlCommand("SELECT password FROM admin_password WHERE id = 1", connection);
-                var hashedPassword = passwordCmd.ExecuteScalar()?.ToString();
-
-                if (string.IsNullOrEmpty(hashedPassword) || !BCrypt.Net.BCrypt.Verify(dto.AdminPassword, hashedPassword))
+                // ✅ Vérification du mot de passe seulement si rôle ≠ admin
+                if (dto.Role != "admin")
                 {
-                    return Unauthorized(new { message = "Mot de passe admin invalide" });
+                    var passwordCmd = new MySqlCommand("SELECT password FROM admin_password WHERE id = 1", connection);
+                    var hashedPassword = passwordCmd.ExecuteScalar()?.ToString();
+
+                    if (string.IsNullOrEmpty(hashedPassword) || !BCrypt.Net.BCrypt.Verify(dto.AdminPassword, hashedPassword))
+                    {
+                        return Unauthorized(new { message = "Mot de passe admin invalide" });
+                    }
                 }
 
-                // Supprimer les mouvements liés
+                // 🔁 Supprimer les mouvements
                 var deleteMovements = new MySqlCommand("DELETE FROM mouvements WHERE PRODUCT_ID = @id", connection);
                 deleteMovements.Parameters.AddWithValue("@id", dto.ProductId);
                 deleteMovements.ExecuteNonQuery();
 
-                // Supprimer le produit
+                // 🧼 Supprimer le produit
                 var deleteCmd = new MySqlCommand("DELETE FROM product WHERE id = @id", connection);
                 deleteCmd.Parameters.AddWithValue("@id", dto.ProductId);
                 int rowsAffected = deleteCmd.ExecuteNonQuery();
@@ -184,6 +188,7 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
+
         [HttpPut("{id}")]
         public IActionResult UpdateProduct(int id, [FromBody] ProductDto product)
         {

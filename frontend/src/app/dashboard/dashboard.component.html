@@ -106,7 +106,7 @@
           </span>
           </div>
 
-          <div class="product-actions" *ngIf="isModeratorOrAdmin">
+          <div class="product-actions" *ngIf="canModifyOrDelete()">
             <button class="btn btn-sm btn-outline" (click)="confirmEdit(product); $event.stopPropagation()">
               Modifier
             </button>
@@ -159,9 +159,10 @@
   [product]="currentProduct"
   [mode]="modalMode"
   [categories]="categories"
+  [allProducts]="products"
   (save)="saveProduct($event)"
-  (close)="closeModal()">
-</app-product-modal>
+  (close)="closeModal()"
+></app-product-modal>
 
 <app-category-modal
   [visible]="categoryModalVisible"

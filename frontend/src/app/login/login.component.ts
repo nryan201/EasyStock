@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
+
 @Component({
   selector: 'app-login',
   standalone: true,
@@ -27,16 +28,25 @@ export class LoginComponent {
         next: (res) => {
           console.log('✅ Réponse reçue du backend :', res);
 
+          if (res.id !== undefined) {
+            sessionStorage.setItem('userId', res.id.toString());
+            console.log('🆔 ID stocké :', res.id);
+          }
+
           if (res.email) {
             sessionStorage.setItem('email', res.email);
             console.log('📥 Email stocké :', res.email);
-          } else {
-            console.warn('⚠️ Aucun email fourni dans la réponse.');
           }
 
           if (res.username) sessionStorage.setItem('username', res.username);
           if (res.role) sessionStorage.setItem('role', res.role);
           if (res.createdAt) sessionStorage.setItem('createdAt', res.createdAt);
+
+          // 🔐 Ajout du champ isAdmin
+          if (res.isAdmin !== undefined) {
+            sessionStorage.setItem('isAdmin', res.isAdmin ? 'true' : 'false');
+            console.log('🔐 isAdmin stocké :', res.isAdmin);
+          }
 
           this.router.navigate(['/dashboard']); // Redirection après login
         },
@@ -46,5 +56,4 @@ export class LoginComponent {
         }
       });
   }
-
 }

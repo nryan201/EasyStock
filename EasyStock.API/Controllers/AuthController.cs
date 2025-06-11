@@ -53,22 +53,24 @@ namespace EasyStock.API.Controllers
                         var daysSinceCreation = (DateTime.Now - createdAt).Days;
                         return Ok(new
                         {
+                            id = reader.GetInt32("id"), // 👈 Ajoute ça !
                             message = "Connexion réussie",
                             username = reader.GetString("username"),
                             role = reader.GetString("role"),
                             createdAt = createdAt,
+                            IsAdmin = reader.GetBoolean("is_admin"),
                             daysSinceCreation = daysSinceCreation,
                             email = reader.GetString("email")
                         });
                     }
                     else
                     {
-                        return Unauthorized(new { error = "Mot de passe incorrect" });
+                        return Unauthorized(new { error = "Utilisateur ou mot de passe incorrect" });
                     }
                 }
                 else
                 {
-                    return NotFound(new { error = "Utilisateur non trouvé" });
+                    return NotFound(new { error = "Utilisateur ou mot de passe incorrect" });
                 }
             }
             catch (Exception e)
@@ -76,6 +78,7 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+
 
         public class UserDto
         {

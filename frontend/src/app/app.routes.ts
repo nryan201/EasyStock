@@ -20,6 +20,14 @@ export const routes: Routes = [
     loadComponent: () => import('./register/register.component').then(m => m.RegisterComponent)
   },
   {
+    path: 'success',
+    loadComponent: () => import('./succes/succes.component').then(m => m.SuccessComponent)
+  },
+  {
+    path: 'cancel',
+    loadComponent: () => import('./cancel/cancel.component').then(m => m.CancelComponent)
+  },
+  {
     path: 'dashboard',
     loadComponent: () => import('./dashboard/dashboard.component').then(m => m.DashboardComponent),
     canActivate: [AuthGuard] //
