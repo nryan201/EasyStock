@@ -10,7 +10,6 @@ import { IncidentTicketModalComponent } from '../components/incident-ticket-moda
   selector: 'app-admin-dashboard',
   imports: [
     CommonModule,
-    HttpClientModule,
     AdminPasswordModalComponent,
     ManageUsersModalComponent,
     IncidentTicketModalComponent

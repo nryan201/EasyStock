@@ -26,7 +26,7 @@ export class RegisterComponent {
       .subscribe({
         next: (res) => {
           console.log('Inscription réussie', res);
-          this.router.navigate(['/home']);
+          this.router.navigate(['/dashboard']);
         },
         error: (err) => {
           console.error('Erreur API', err);

@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Net.Mail;
 using EasyStock.API.Dtos;
+
 namespace EasyStock.API.Controllers
 {
     [ApiController]
@@ -10,6 +12,7 @@ namespace EasyStock.API.Controllers
     {
         private static Dictionary<string, string> _codes = new();
 
+        [AllowAnonymous]
         [HttpPost("send-code")]
         public IActionResult SendEmail([FromBody] EmailRequest request)
         {
@@ -52,6 +55,7 @@ namespace EasyStock.API.Controllers
             }
         }
 
+        [AllowAnonymous]
         [HttpPost("send-incident")]
         public IActionResult SendIncidentEmail([FromBody] IncidentTicket ticket)
         {
@@ -97,6 +101,5 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = "❌ Erreur lors de l'envoi : " + ex.Message });
             }
         }
-        
     }
 }

@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-success',
   standalone: true,
-  imports: [CommonModule, HttpClientModule], // ✅ ajoute ça
+  imports: [CommonModule], // ✅ ajoute ça
   template: ''
 })
 export class SuccessComponent {

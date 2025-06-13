@@ -1,14 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using EasyStock.API.Dtos;
+
 namespace EasyStock.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
     public class CategoriesController : ControllerBase
     {
+        // 🔐 JWT requis pour POST
+        [Authorize]
         [HttpPost]
-
         public IActionResult Create([FromBody] CategoryDto categories)
         {
             string connStr_ = "Server=localhost;Database=easystock;User ID=root;Password=root;";
@@ -16,19 +19,21 @@ namespace EasyStock.API.Controllers
             {
                 using var connection = new MySqlConnection(connStr_);
                 connection.Open();
-             
+
                 var command = new MySqlCommand("Insert into categories (NAME) values (@name)", connection);
                 command.Parameters.AddWithValue("@name", categories.Name);
                 command.ExecuteNonQuery();
-                
+
                 return Ok(new { message = "Category created successfully" });
-                
             }
             catch (Exception e)
             {
                 return StatusCode(500, new { error = e.Message });
             }
         }
+
+        // 🔓 Route publique
+        [AllowAnonymous]
         [HttpGet]
         public IActionResult GetAll()
         {
@@ -42,11 +47,11 @@ namespace EasyStock.API.Controllers
                 using var reader = command.ExecuteReader();
                 while (reader.Read())
                 {
-                 categories.Add(new CategoryDto
+                    categories.Add(new CategoryDto
                     {
                         id = Convert.ToInt32(reader["ID"]),
                         Name = reader["NAME"].ToString() ?? string.Empty
-                    });   
+                    });
                 }
 
                 return Ok(categories);
@@ -55,9 +60,10 @@ namespace EasyStock.API.Controllers
             {
                 return StatusCode(500, new { error = e.Message });
             }
-            
-            
         }
+
+        // 🔓 Route publique
+        [AllowAnonymous]
         [HttpGet("by-category/{categoryId}")]
         public IActionResult GetProductsByCategory(int categoryId)
         {
@@ -91,6 +97,5 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
-        
     }
 }

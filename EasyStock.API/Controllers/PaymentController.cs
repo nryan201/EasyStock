@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using Stripe;
 using Stripe.Checkout;
 using EasyStock.API.Dtos;
 using Evt = Stripe.Events;
+
 namespace EasyStock.API.Controllers
 {
     [ApiController]
@@ -11,14 +13,15 @@ namespace EasyStock.API.Controllers
     public class PaymentController : ControllerBase
     {
         private const string ConnStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
-        private const string EndpointSecret = "whsec_eaf1664015741a292256d3b2794edc32efc0b7404e032422a3cbc3e58e519292"; // Remplace par ta vraie clé webhook Stripe
+        private const string EndpointSecret = "whsec_eaf1664015741a292256d3b2794edc32efc0b7404e032422a3cbc3e58e519292";
 
         public PaymentController()
         {
             StripeConfiguration.ApiKey = "sk_test_51RYMdQBThlU1yLe3kSApIHQgV2wCwGMbsWSWgQipNW5EOVpfuesNE3Klg5lDnsyqoKbsiRs2Jef67WETVd94mrVa00cyBaUAir";
         }
 
-        // ✅ Crée une session Stripe Checkout
+        // 🔐 JWT requis
+        [Authorize]
         [HttpPost("create-checkout-session")]
         public async Task<IActionResult> CreateCheckoutSession([FromBody] CreateCheckoutRequestDto req)
         {
@@ -46,12 +49,13 @@ namespace EasyStock.API.Controllers
             return Ok(new { url = session.Url });
         }
 
-        // ✅ Webhook Stripe : paiement réussi ou échoué
+        // 🔓 Stripe Webhook : doit rester public
+        [AllowAnonymous]
         [HttpPost("webhook")]
         public async Task<IActionResult> StripeWebhook()
         {
             var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-        
+
             try
             {
                 var stripeEvent = EventUtility.ConstructEvent(
@@ -59,23 +63,22 @@ namespace EasyStock.API.Controllers
                     Request.Headers["Stripe-Signature"],
                     EndpointSecret
                 );
-        
+
                 Console.WriteLine($"🎯 Type d’événement Stripe : {stripeEvent.Type}");
                 Console.WriteLine($"📦 Données reçues : {json}");
-        
+
                 if (stripeEvent.Type == "checkout.session.completed")
                 {
                     var session = stripeEvent.Data.Object as Session;
                     Console.WriteLine("✅ [Webhook] Paiement Stripe réussi pour session : " + session?.Id);
                     Console.WriteLine("ℹ️ Attente de confirmation frontend (POST /set-admin) pour promotion des droits.");
                 }
-
                 else if (stripeEvent.Type == "invoice.payment_failed")
                 {
                     var invoice = stripeEvent.Data.Object as Invoice;
                     Console.WriteLine($"❌ Paiement échoué pour client Stripe : {invoice?.CustomerId}");
                 }
-        
+
                 return Ok();
             }
             catch (StripeException e)
@@ -84,19 +87,24 @@ namespace EasyStock.API.Controllers
                 return StatusCode(400);
             }
         }
+
+        // 🔐 JWT requis
+        [Authorize]
         [HttpPost("set-admin")]
         public IActionResult SetAdmin([FromBody] SetAdminDto dto)
         {
             int userId = dto.UserId;
             Console.WriteLine($"📥 Reçu demande de set-admin pour userId={userId}");
-        
+
             using var connection = new MySqlConnection(ConnStr);
             connection.Open();
-        
-            var command = new MySqlCommand("UPDATE users SET is_admin = 1 WHERE id = @userId", connection);
+
+            var command = new MySqlCommand(
+                "UPDATE users SET is_admin = 1, createdAt = NOW() WHERE id = @userId",
+                connection);
             command.Parameters.AddWithValue("@userId", userId);
             var affected = command.ExecuteNonQuery();
-        
+
             if (affected > 0)
             {
                 Console.WriteLine($"✅ L'utilisateur avec ID={userId} est maintenant admin.");
@@ -108,7 +116,5 @@ namespace EasyStock.API.Controllers
                 return NotFound(new { error = "❌ Utilisateur non trouvé" });
             }
         }
-        }
     }
-
-       
+}

@@ -7,7 +7,7 @@ import { BrowserOnlyService } from '../browser-only/browser-only.service';
 @Component({
   selector: 'app-success',
   standalone: true,
-  imports: [CommonModule, HttpClientModule],
+  imports: [CommonModule],
   template: ''
 })
 export class SuccessComponent implements OnInit {

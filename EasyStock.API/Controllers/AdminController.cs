@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using EasyStock.API.Dtos;
 using BCrypt.Net;
@@ -7,13 +8,15 @@ using System.Net.Mail;
 
 namespace EasyStock.API.Controllers
 {
+    public class PasswordDto { public string Password { get; set; } = ""; }
     [ApiController]
     [Route("api/[controller]")]
     public class AdminController : ControllerBase
     {
-        // Stockage temporaire des codes par email
         private static Dictionary<string, string> _verificationCodes = new();
 
+        // 🔓 Route publique
+        [AllowAnonymous]
         [HttpPost("send-verification-code")]
         public IActionResult SendVerificationCode([FromBody] EmailRequest request)
         {
@@ -53,7 +56,8 @@ namespace EasyStock.API.Controllers
             }
         }
 
-
+        // 🔓 Route publique
+        [AllowAnonymous]
         [HttpPost("verify-code")]
         public IActionResult VerifyCode([FromBody] CodeVerificationDto dto)
         {
@@ -62,13 +66,15 @@ namespace EasyStock.API.Controllers
 
             if (_verificationCodes.TryGetValue(dto.Email, out var savedCode) && savedCode == dto.Code)
             {
-                _verificationCodes.Remove(dto.Email); // code utilisé, on l’enlève
+                _verificationCodes.Remove(dto.Email);
                 return Ok(new { message = "Code valide" });
             }
 
             return Unauthorized(new { message = "Code invalide" });
         }
 
+        // 🔐 Route protégée par JWT
+        [Authorize]
         [HttpPost("set-password")]
         public IActionResult SetAdminPassword([FromBody] PasswordDto dto)
         {
@@ -91,6 +97,9 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+
+        // 🔐 Route protégée par JWT
+        [Authorize]
         [HttpGet("verify-admin-password")]
         public IActionResult VerifyAdminPassword([FromQuery] string password)
         {
@@ -117,6 +126,5 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = ex.Message });
             }
         }
-
     }
 }

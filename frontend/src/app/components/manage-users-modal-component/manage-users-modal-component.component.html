@@ -9,44 +9,181 @@
     <p class="modal-subtitle">Gérez les rôles et permissions des utilisateurs</p>
 
     <div class="modal-content">
-      <!-- Liste des utilisateurs -->
-      <div class="users-list">
-        <div *ngFor="let user of otherUsers; trackBy: trackByUserId" class="user-row">
-          <div class="user-info">
-            <div class="user-avatar">
-              {{ user.username.charAt(0).toUpperCase() }}
-            </div>
-            <div class="user-details">
-              <h3 class="user-name">{{ user.username }}</h3>
-              <p class="user-email">{{ user.email }}</p>
-            </div>
+      <!-- Barre de recherche et contrôles -->
+      <div class="table-controls">
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            [(ngModel)]="searchTerm"
+            (input)="onSearch()"
+            placeholder="Rechercher par nom ou email..."
+          />
+          <span class="search-icon">🔍</span>
+        </div>
+
+        <div class="controls-right">
+          <div class="selected-count" *ngIf="selectedUsers.length > 0">
+            {{ selectedUsers.length }} utilisateur(s) sélectionné(s)
           </div>
 
-          <div class="user-role">
-            <label class="role-label">Rôle :</label>
-            <select
-              class="role-select"
-              [value]="user.role"
-              (change)="onRoleChange(user.id, $any($event.target).value)">
+          <div class="bulk-actions" *ngIf="selectedUsers.length > 0">
+            <select class="bulk-role-select" [(ngModel)]="bulkRole" (change)="onBulkRoleChange()">
+              <option value="">Changer le rôle...</option>
               <option value="user">👤 Utilisateur</option>
               <option value="moderator">🛡️ Modérateur</option>
               <option value="admin">👑 Administrateur</option>
             </select>
           </div>
         </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="data-table-container">
+        <table class="data-table">
+          <thead>
+          <tr>
+            <th class="checkbox-column">
+              <input
+                type="checkbox"
+                class="table-checkbox"
+                [checked]="isAllSelected()"
+                [indeterminate]="isIndeterminate()"
+                (change)="toggleSelectAll()"
+              />
+            </th>
+            <th class="sortable" (click)="sort('username')">
+              <div class="header-content">
+                <span>Utilisateur</span>
+                <span class="sort-icon" [class]="getSortClass('username')">↕️</span>
+              </div>
+            </th>
+            <th class="sortable" (click)="sort('email')">
+              <div class="header-content">
+                <span>Email</span>
+                <span class="sort-icon" [class]="getSortClass('email')">↕️</span>
+              </div>
+            </th>
+            <th class="sortable" (click)="sort('role')">
+              <div class="header-content">
+                <span>Rôle</span>
+                <span class="sort-icon" [class]="getSortClass('role')">↕️</span>
+              </div>
+            </th>
+            <th>Actions</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr
+            *ngFor="let user of paginatedUsers; trackBy: trackByUserId"
+            class="table-row"
+            [class.selected]="isUserSelected(user.id)"
+          >
+            <td class="checkbox-column">
+              <input
+                type="checkbox"
+                class="table-checkbox"
+                [checked]="isUserSelected(user.id)"
+                (change)="toggleUserSelection(user.id)"
+              />
+            </td>
+            <td class="user-column">
+              <div class="user-info">
+                <div class="user-avatar">
+                  {{ user.username.charAt(0).toUpperCase() }}
+                </div>
+                <div class="user-details">
+                  <div class="user-name">{{ user.username }}</div>
+                </div>
+              </div>
+            </td>
+            <td class="email-column">
+              <span class="email-text">{{ user.email }}</span>
+            </td>
+            <td class="role-column">
+              <div class="role-badge" [class]="getRoleClass(user.role)">
+                <span class="role-icon">{{ getRoleIcon(user.role) }}</span>
+                <span class="role-text">{{ getRoleText(user.role) }}</span>
+              </div>
+            </td>
+            <td class="actions-column">
+              <div class="action-buttons">
+                <select
+                  class="role-select-inline"
+                  [value]="user.role"
+                  (change)="onRoleChange(user.id, $any($event.target).value)"
+                >
+                  <option value="user">👤 Utilisateur</option>
+                  <option value="moderator">🛡️ Modérateur</option>
+                  <option value="admin">👑 Administrateur</option>
+                </select>
+
+              </div>
+            </td>
+          </tr>
+          </tbody>
+        </table>
 
         <!-- État vide -->
-        <div *ngIf="otherUsers.length === 0" class="empty-state">
+        <div *ngIf="filteredUsers.length === 0" class="empty-state">
           <div class="empty-icon">👥</div>
-          <h3 class="empty-title">Aucun utilisateur</h3>
-          <p class="empty-description">Il n'y a actuellement aucun autre utilisateur à gérer.</p>
+          <h3 class="empty-title">Aucun utilisateur trouvé</h3>
+          <p class="empty-description" *ngIf="searchTerm">
+            Aucun utilisateur ne correspond à "{{ searchTerm }}"
+          </p>
+          <p class="empty-description" *ngIf="!searchTerm">
+            Il n'y a actuellement aucun autre utilisateur à gérer.
+          </p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" *ngIf="filteredUsers.length > pageSize">
+        <div class="pagination-info">
+          {{ getStartIndex() + 1 }}-{{ getEndIndex() }} sur {{ filteredUsers.length }} utilisateurs
+        </div>
+
+        <div class="pagination-controls">
+          <button
+            class="pagination-btn"
+            (click)="previousPage()"
+            [disabled]="currentPage === 0"
+          >
+            Précédent
+          </button>
+
+          <div class="page-numbers">
+            <button
+              *ngFor="let page of getPageNumbers()"
+              class="page-btn"
+              [class.active]="page === currentPage"
+              (click)="goToPage(page)"
+            >
+              {{ page + 1 }}
+            </button>
+          </div>
+
+          <button
+            class="pagination-btn"
+            (click)="nextPage()"
+            [disabled]="currentPage >= getTotalPages() - 1"
+          >
+            Suivant
+          </button>
         </div>
       </div>
     </div>
 
     <div class="modal-actions">
-      <button class="btn btn-primary" (click)="emitClose()">
+      <button class="btn btn-secondary" (click)="emitClose()">
         Fermer
+      </button>
+      <button
+        class="btn btn-primary"
+        *ngIf="selectedUsers.length > 0"
+        (click)="applyBulkActions()"
+      >
+        Appliquer les modifications ({{ selectedUsers.length }})
       </button>
     </div>
   </div>

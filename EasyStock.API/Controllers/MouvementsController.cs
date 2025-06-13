@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using EasyStock.API.Dtos;
 
@@ -8,6 +9,8 @@ namespace EasyStock.API.Controllers
     [Route("api/[controller]")]
     public class MouvementsController : ControllerBase
     {
+        // 🔐 JWT requis pour créer un mouvement
+        [Authorize]
         [HttpPost]
         public IActionResult Create([FromBody] MouvementDto mouvement)
         {
@@ -18,11 +21,11 @@ namespace EasyStock.API.Controllers
                 connection.Open();
                 var command = new MySqlCommand(
                     @"INSERT INTO mouvements (PRODUCT_ID, QUANTITY, MOVEMENT_TYPE, MOVEMENT_DATE)
-                  VALUES (@productId, @quantity, @movementType, NOW())", connection);
+                      VALUES (@productId, @quantity, @movementType, NOW())", connection);
 
                 command.Parameters.AddWithValue("@productId", mouvement.ProductId);
                 command.Parameters.AddWithValue("@quantity", mouvement.Quantity);
-                command.Parameters.AddWithValue("@movementType", mouvement.MovementType); // "entrée" ou "sortie"
+                command.Parameters.AddWithValue("@movementType", mouvement.MovementType);
                 command.ExecuteNonQuery();
 
                 return Ok(new { message = "Mouvement enregistré" });
@@ -33,6 +36,8 @@ namespace EasyStock.API.Controllers
             }
         }
 
+        // 🔓 Lecture publique
+        [AllowAnonymous]
         [HttpGet("evolution-global")]
         public IActionResult GetGlobalStockEvolution()
         {
@@ -45,9 +50,9 @@ namespace EasyStock.API.Controllers
                 connection.Open();
 
                 var command = new MySqlCommand(@"
-            SELECT MOVEMENT_DATE, MOVEMENT_TYPE, QUANTITY
-            FROM mouvements
-            ORDER BY MOVEMENT_DATE", connection);
+                    SELECT MOVEMENT_DATE, MOVEMENT_TYPE, QUANTITY
+                    FROM mouvements
+                    ORDER BY MOVEMENT_DATE", connection);
 
                 using var reader = command.ExecuteReader();
                 int stock = 0;
@@ -74,6 +79,8 @@ namespace EasyStock.API.Controllers
             }
         }
 
+        // 🔓 Lecture publique
+        [AllowAnonymous]
         [HttpGet("by-category/{categoryId}")]
         public IActionResult GetMouvementsByCategory(int categoryId)
         {
@@ -86,13 +93,13 @@ namespace EasyStock.API.Controllers
                 connection.Open();
 
                 var command = new MySqlCommand(@"
-            SELECT m.MOVEMENT_DATE, 
-                   m.MOVEMENT_TYPE, 
-                   m.QUANTITY
-            FROM mouvements m
-            JOIN product p ON m.PRODUCT_ID = p.ID
-            WHERE p.CATEGORY_ID = @categoryId
-            ORDER BY m.MOVEMENT_DATE", connection);
+                    SELECT m.MOVEMENT_DATE, 
+                           m.MOVEMENT_TYPE, 
+                           m.QUANTITY
+                    FROM mouvements m
+                    JOIN product p ON m.PRODUCT_ID = p.ID
+                    WHERE p.CATEGORY_ID = @categoryId
+                    ORDER BY m.MOVEMENT_DATE", connection);
 
                 command.Parameters.AddWithValue("@categoryId", categoryId);
 

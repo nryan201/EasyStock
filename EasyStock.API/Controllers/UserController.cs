@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using EasyStock.API.Dtos;
 
@@ -8,15 +9,18 @@ namespace EasyStock.API.Controllers
     [Route("api/users")]
     public class UserController : ControllerBase
     {
+        private readonly string _connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+
+        // 🔐 Liste des utilisateurs – protégée
+        [Authorize]
         [HttpGet]
         public IActionResult GetUsers()
         {
-            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
             var users = new List<UserInfoDto>();
 
             try
             {
-                using var connection = new MySqlConnection(connStr);
+                using var connection = new MySqlConnection(_connStr);
                 connection.Open();
 
                 var command = new MySqlCommand("SELECT id, username, email, role FROM users", connection);
@@ -39,14 +43,17 @@ namespace EasyStock.API.Controllers
                 return StatusCode(500, new { error = e.Message });
             }
         }
+
+        // 🔐 Mise à jour des rôles – protégée
+        [Authorize]
         [HttpPost("update-role")]
         public IActionResult UpdateUserRole([FromBody] UpdateRoleDto dto)
         {
             Console.WriteLine($"🔧 Mise à jour du rôle: id={dto.UserId}, role={dto.Role}");
-            string connStr = "Server=localhost;Database=easystock;User ID=root;Password=root;";
+
             try
             {
-                using var connection = new MySqlConnection(connStr);
+                using var connection = new MySqlConnection(_connStr);
                 connection.Open();
 
                 var command = new MySqlCommand("UPDATE users SET role = @role WHERE id = @id", connection);

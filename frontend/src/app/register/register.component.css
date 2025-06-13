@@ -228,7 +228,6 @@
   }
 }
 
-// Responsive adjustments
 @media (max-width: 768px) {
   .register-container {
     min-height: auto;

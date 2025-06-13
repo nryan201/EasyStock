@@ -8,7 +8,7 @@ import { HttpClientModule } from '@angular/common/http';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, HttpClientModule],
+  imports: [CommonModule, FormsModule,HttpClientModule],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
@@ -39,6 +39,10 @@ export class LoginComponent {
           }
 
           if (res.username) sessionStorage.setItem('username', res.username);
+          if (res.token) {
+            sessionStorage.setItem('token', res.token);
+            console.log('🔐 Token JWT stocké', res.token);
+          }
           if (res.role) sessionStorage.setItem('role', res.role);
           if (res.createdAt) sessionStorage.setItem('createdAt', res.createdAt);
 

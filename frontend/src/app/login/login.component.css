@@ -237,7 +237,6 @@
   }
 }
 
-// Responsive adjustments
 @media (max-width: 768px) {
   .login-container {
     min-height: auto;

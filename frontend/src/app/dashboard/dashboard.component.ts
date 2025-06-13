@@ -7,9 +7,9 @@ import { ProductModalComponent } from '../components/product-modal/product-modal
 import { CategoryModalComponent } from '../components/category-modal/category-modal.component';
 import { PasswordCheckModalComponent } from '../components/app-password-check-modal/app-password-check-modal.component';
 @Component({
-  selector: 'app-dashboard',
-  standalone: true,
-  imports: [CommonModule, HttpClientModule, ProductModalComponent, CategoryModalComponent, PasswordCheckModalComponent],
+    selector: 'app-dashboard',
+    standalone: true,
+  imports: [CommonModule, ProductModalComponent, CategoryModalComponent, PasswordCheckModalComponent],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
